@@ -12,7 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.swing.text.html.Option;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,19 +28,21 @@ public class UrlController {
     /**
      * Creates a new short URL for the given original URL and user.
      * @param request The request body containing the original URL, title, description, and expiration.
-     * @param username (Optional) The username of the user creating the short URL.
+     * @param username The username of the user creating the short URL.
      * @return The created UrlResponse with short code and details.
      */
     @PostMapping
     public ResponseEntity<UrlResponse> createShortUrl(@Valid @RequestBody CreateUrlRequest request,
-                                                    @RequestParam(required = false) String username) {
+                                                    @RequestParam String username) {
         try {
+            userService.validateUserAccess(username);
+            
             UrlResponse response = urlService.createShortUrl(request, username);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
             
         } catch (IllegalArgumentException e) {
             log.error("Error creating short URL: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(null);
         } catch (Exception e) {
             log.error("Unexpected error creating short URL", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

@@ -39,7 +39,7 @@ public class UrlClick extends BaseAuditableEntity {
     @Column(name = "referer", length = 500)
     String referer;
 
-    @Column(name = "country", length = 2)
+    @Column(name = "country", length = 100)
     String country;
 
     @Column(name = "city", length = 100)

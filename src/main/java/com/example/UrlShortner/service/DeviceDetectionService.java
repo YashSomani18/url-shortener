@@ -57,7 +57,7 @@ public class DeviceDetectionService {
     private static final String CHROMEOS = "chromeos";
     private static final String LINUX = "linux";
 
-    @Cacheable(value = "deviceInfo", key = "#userAgent")
+    // @Cacheable(value = "deviceInfo", key = "#userAgent") // Temporarily disabled due to serialization issues
     public DeviceInfoDto extractDeviceInfo(String userAgent) {
         if (userAgent == null || userAgent.isEmpty()) {
             return DeviceInfoDto.unknown();

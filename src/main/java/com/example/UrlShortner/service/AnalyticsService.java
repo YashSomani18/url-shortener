@@ -48,6 +48,7 @@ public class AnalyticsService {
 
     @Transactional
     public void recordClick(String urlKey, String ipAddress, String userAgent, String referer) {
+        log.info("START: recordClick");
         try {
             UrlClick click = buildUrlClick(urlKey, ipAddress, userAgent, referer);
             urlClickRepository.save(click);
@@ -56,7 +57,6 @@ public class AnalyticsService {
                     urlKey, ipAddress, click.getDeviceType());
         } catch (Exception e) {
             log.error("Failed to record click for URL key: {}", urlKey, e);
-            // Don't throw - we don't want analytics failure to break redirects
         }
     }
 

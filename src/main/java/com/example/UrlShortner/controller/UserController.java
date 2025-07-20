@@ -51,14 +51,19 @@ public class UserController {
     
     /**
      * Retrieves all URLs created by a user.
-     * @param username The username to fetch URLs for (as request param)
+     * @param username The username to fetch URLs for (as path variable)
      * @return List of UrlResponse objects for the user
      */
     @GetMapping("/user/{username}")
-    public ResponseEntity<List<UrlResponse>> getUserInfo(@RequestParam String username) {
+    public ResponseEntity<List<UrlResponse>> getUserInfo(@PathVariable String username) {
         try {
+            userService.validateUserAccess(username);
+            
             List<UrlResponse> urls = userService.getAllUrlsByUserName(username);
             return ResponseEntity.ok(urls);
+        } catch (IllegalArgumentException e) {
+            log.error("Access denied for user info: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
         } catch (Exception e) {
             log.error("Error getting user info", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -67,17 +72,20 @@ public class UserController {
 
     /**
      * Updates the password for a user.
-     * @param username The username whose password is to be updated (as request param)
-     * @param newPassword The new password to set (as request param)
+     * @param request UpdatePasswordRequest containing username, oldPassword, and newPassword
      * @return Success or error message
      */
     @PostMapping("/update-password")
-    public ResponseEntity<String> updatePassword(@RequestParam String username, @RequestParam String newPassword) {
+    public ResponseEntity<String> updatePassword(@RequestBody @Valid UpdatePasswordRequest request) {
         try {
-            userService.updatePassword(username, newPassword);
+            userService.updatePassword(request);
             return ResponseEntity.ok("Password updated successfully");
         } catch (IllegalArgumentException e) {
+            log.error("Password update error: {}", e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error during password update", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while updating password");
         }
     }
 

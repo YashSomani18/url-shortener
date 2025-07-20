@@ -85,14 +85,62 @@ public class UserService {
     }
     
     @Transactional
-    public void updatePassword(String username, String newPassword) {
-        User user = userRepository.findByUsername(username);
-        if (Objects.nonNull(user)) {
-            user.setPassword(passwordEncoder.encode(newPassword));
-            userRepository.save(user);
-            log.info("Updated password for user: {}", user.getUsername());
-        } else {
+    public void updatePassword(UpdatePasswordRequest request) {
+        // Validate that the authenticated user can only modify their own password
+        validateUserAccess(request.getUsername());
+        
+        User user = userRepository.findByUsername(request.getUsername());
+        if (Objects.isNull(user)) {
             throw new IllegalArgumentException("User not found");
+        }
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Old password is incorrect");
+        }
+
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("New password must be different from old password");
+        }
+        
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        log.info("Updated password for user: {}", user.getUsername());
+    }
+
+    /**
+     * Validates that the authenticated user matches the requested username
+     * This ensures users can only modify their own data
+     */
+    public void validateUserAccess(String requestedUsername) {
+        // Get the current authenticated user from Spring Security context
+        String authenticatedUsername = getCurrentAuthenticatedUsername();
+        
+        if (authenticatedUsername == null) {
+            throw new IllegalArgumentException("User not authenticated");
+        }
+        
+        // Check if the authenticated user matches the requested username
+        if (!authenticatedUsername.equals(requestedUsername)) {
+            throw new IllegalArgumentException("Access denied: You can only modify your own data");
+        }
+    }
+    
+    /**
+     * Gets the username of the currently authenticated user from Spring Security context
+     */
+    private String getCurrentAuthenticatedUsername() {
+        try {
+            org.springframework.security.core.Authentication authentication = 
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            
+            if (authentication != null && authentication.isAuthenticated() && 
+                !"anonymousUser".equals(authentication.getName())) {
+                return authentication.getName();
+            }
+            return null;
+        } catch (Exception e) {
+            log.error("Error getting authenticated username", e);
+            return null;
         }
     }
     
@@ -110,10 +158,18 @@ public class UserService {
     }
 
     /**
-     * Authenticates a user by username and email and password, generates JWT, and builds the login response DTO.
+     * Authenticates a user by username or email and password, generates JWT, and builds the login response DTO.
      */
     public UserLoginResponse authenticateAndBuildLoginResponse(UserLoginRequest request) {
-        User user = userRepository.findByUsernameAndEmail(request.getUsername(), request.getEmail());
+        User user = null;
+
+        if ( Objects.nonNull(request.getUsername()) && !request.getUsername().trim().isEmpty()) {
+            user = userRepository.findByUsername(request.getUsername());
+        }
+
+        if (Objects.isNull(user) && Objects.nonNull(request.getEmail()) && !request.getEmail().trim().isEmpty()) {
+            user = userRepository.findByEmail(request.getEmail()).orElse(null);
+        }
 
         if (Objects.isNull(user) || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("Invalid username/email or password");

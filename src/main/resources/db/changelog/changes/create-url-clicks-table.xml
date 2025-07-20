@@ -218,4 +218,24 @@
         </rollback>
     </changeSet>
 
+    <changeSet id="008" author="url-shortener">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="url_clicks"/>
+            <columnExists tableName="url_clicks" columnName="country"/>
+        </preConditions>
+        <comment>Fix country column size to accommodate full country names instead of just 2-character codes</comment>
+
+        <sql>
+            ALTER TABLE url_clicks
+            ALTER COLUMN country TYPE VARCHAR(100);
+        </sql>
+
+        <rollback>
+            <sql>
+                ALTER TABLE url_clicks
+                ALTER COLUMN country TYPE VARCHAR(2);
+            </sql>
+        </rollback>
+    </changeSet>
+
 </databaseChangeLog>

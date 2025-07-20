@@ -6,11 +6,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @Slf4j
@@ -32,7 +33,8 @@ public class GeoLocationService {
     private static final String UNKNOWN_COUNTRY = "Unknown";
     private static final String UNKNOWN_CITY = "Unknown";
 
-    @Cacheable(value = "geoLocation", key = "#ipAddress")
+    private final ConcurrentHashMap<String, GeoLocationDto> locationCache = new ConcurrentHashMap<>();
+
     @Retryable(
             retryFor = {Exception.class},
             maxAttempts = 2,
@@ -43,22 +45,34 @@ public class GeoLocationService {
             return createUnknownLocation();
         }
 
+        GeoLocationDto cached = locationCache.get(ipAddress);
+        if (cached != null) {
+            log.debug("Cache hit for IP: {}", ipAddress);
+            return cached;
+        }
+
         if (isPrivateOrLocalIP(ipAddress)) {
             log.debug("Private/Local IP detected: {}", ipAddress);
-            return GeoLocationDto.builder()
+            GeoLocationDto localLocation = GeoLocationDto.builder()
                     .country("Local")
                     .city("Local")
                     .region("Local")
                     .latitude(0.0)
                     .longitude(0.0)
                     .build();
+            locationCache.put(ipAddress, localLocation);
+            return localLocation;
         }
 
         try {
-            return fetchLocationFromAPI(ipAddress);
+            GeoLocationDto location = fetchLocationFromAPI(ipAddress);
+            locationCache.put(ipAddress, location);
+            return location;
         } catch (Exception e) {
             log.warn("Failed to get geolocation for IP: {} - {}", ipAddress, e.getMessage());
-            return createUnknownLocation();
+            GeoLocationDto unknownLocation = createUnknownLocation();
+            locationCache.put(ipAddress, unknownLocation);
+            return unknownLocation;
         }
     }
 

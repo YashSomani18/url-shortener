@@ -44,9 +44,15 @@ public class UrlService {
     @Transactional
     public UrlResponse createShortUrl(CreateUrlRequest request, String username) {
 
-        Url existingUrl = urlRepository.findByOriginalUrlAndUserKey(request.getOriginalUrl(), username);
-        if (Objects.isNull(existingUrl)) {
-            log.info("Creating new Url");
+        User user = userRepository.findByUsername(username);
+        if (Objects.isNull(user)) {
+            throw new IllegalArgumentException("User not found: " + username);
+        }
+
+        Url existingUrl = urlRepository.findByOriginalUrlAndUserKey(request.getOriginalUrl(), user.getUserKey());
+        if (Objects.nonNull(existingUrl)) {
+            log.info("URL already exists for user: {}", username);
+            return convertToUrlResponse(existingUrl);
         }
 
         String shortCode = generateUniqueShortCode();
@@ -54,7 +60,7 @@ public class UrlService {
         Url url = Url.builder()
                 .originalUrl(request.getOriginalUrl())
                 .shortCode(shortCode)
-                .userKey(existingUrl.getUserKey())
+                .userKey(user.getUserKey())
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .expiresAt(request.getExpiresAt())
@@ -66,7 +72,7 @@ public class UrlService {
 
         cacheService.cacheUrl(shortCode, savedUrl);
         
-        log.info("Created short URL: {} -> {}", shortCode, request.getOriginalUrl());
+        log.info("Created short URL: {} -> {} for user: {}", shortCode, request.getOriginalUrl(), username);
         return convertToUrlResponse(savedUrl);
     }
     
@@ -93,6 +99,7 @@ public class UrlService {
             url.setClickCount(url.getClickCount() + 1);
             urlRepository.save(url);
 
+            log.info("UrlKey{}, ipAddress{}, userAgent{}, referer{}",url.getUrlKey(), ipAddress, userAgent, referer);
             analyticsService.recordClick(url.getUrlKey(), ipAddress, userAgent, referer);
 
             cacheService.cacheUrl(shortCode, url);
