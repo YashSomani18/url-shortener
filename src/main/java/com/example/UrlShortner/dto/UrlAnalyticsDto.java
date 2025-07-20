@@ -19,4 +19,8 @@ public class UrlAnalyticsDto {
     private Map<String, Long> countryStats;
     private Map<String, Long> browserStats;
     private Map<String, Long> deviceStats;
+    private Map<String, Long> utmSourceStats;
+    private Map<String, Long> utmMediumStats;
+    private Map<String, Long> utmCampaignStats;
+    private Map<String, Long> operatingSystemStats;
 }

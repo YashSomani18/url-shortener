@@ -1,8 +1,10 @@
 package com.example.UrlShortner.controller;
 
 import com.example.UrlShortner.dto.CreateUrlRequest;
+import com.example.UrlShortner.dto.UrlAnalyticsDto;
 import com.example.UrlShortner.dto.UrlResponse;
 import com.example.UrlShortner.model.User;
+import com.example.UrlShortner.service.AnalyticsService;
 import com.example.UrlShortner.service.UrlService;
 import com.example.UrlShortner.service.UserService;
 import jakarta.validation.Valid;
@@ -23,6 +25,7 @@ public class UrlController {
     
     private final UrlService urlService;
     private final UserService userService;
+    private final AnalyticsService analyticsService;
 
 
     /**
@@ -113,26 +116,25 @@ public class UrlController {
         }
     }
     
-//    @GetMapping("/stats/{shortCode}")
-//    public ResponseEntity<Map<String, Object>> getUrlStats(@PathVariable String shortCode) {
-//        try {
-//            return urlService.getUrlByShortCode(shortCode)
-//                    .map(url -> {
-//                        // TODO: Add analytics service to get detailed stats
-//                        Map<String, Object> stats = Map.of(
-//                            "shortCode", url.getShortCode(),
-//                            "clickCount", url.getClickCount(),
-//                            "createdOn", url.getCreatedOn(),
-//                            "isActive", url.getIsActive()
-//                        );
-//                        return ResponseEntity.ok(stats);
-//                    })
-//                    .orElse(ResponseEntity.notFound().build());
-//        } catch (Exception e) {
-//            log.error("Error getting URL stats for: {}", shortCode, e);
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-//        }
-//    }
-    
+    /**
+     * Get comprehensive analytics for a URL including UTM parameters
+     * @param shortCode The short code of the URL
+     * @return Analytics data including UTM performance
+     */
+    @GetMapping("/analytics/{shortCode}")
+    public ResponseEntity<UrlAnalyticsDto> getUrlAnalytics(@PathVariable String shortCode) {
+        try {
+            UrlResponse urlResponse = urlService.getUrlByShortCode(shortCode);
+            if (urlResponse == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            UrlAnalyticsDto analytics = analyticsService.getUrlAnalytics(urlResponse.getId());
+            return ResponseEntity.ok(analytics);
+        } catch (Exception e) {
+            log.error("Error getting analytics for short code: {}", shortCode, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 
 } 

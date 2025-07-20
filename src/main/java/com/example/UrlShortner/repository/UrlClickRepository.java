@@ -48,4 +48,16 @@ public interface UrlClickRepository extends JpaRepository<UrlClick, String> {
     
     @Query("SELECT c.deviceType, COUNT(c) FROM UrlClick c WHERE c.urlKey = :urlKey GROUP BY c.deviceType ORDER BY COUNT(c) DESC")
     List<Object[]> getClickStatsByDeviceType(@Param("urlKey") String urlKey);
+    
+    @Query("SELECT c.utmSource, COUNT(c) FROM UrlClick c WHERE c.urlKey = :urlKey AND c.utmSource IS NOT NULL GROUP BY c.utmSource ORDER BY COUNT(c) DESC")
+    List<Object[]> getClickStatsByUtmSource(@Param("urlKey") String urlKey);
+    
+    @Query("SELECT c.utmMedium, COUNT(c) FROM UrlClick c WHERE c.urlKey = :urlKey AND c.utmMedium IS NOT NULL GROUP BY c.utmMedium ORDER BY COUNT(c) DESC")
+    List<Object[]> getClickStatsByUtmMedium(@Param("urlKey") String urlKey);
+    
+    @Query("SELECT c.utmCampaign, COUNT(c) FROM UrlClick c WHERE c.urlKey = :urlKey AND c.utmCampaign IS NOT NULL GROUP BY c.utmCampaign ORDER BY COUNT(c) DESC")
+    List<Object[]> getClickStatsByUtmCampaign(@Param("urlKey") String urlKey);
+    
+    @Query("SELECT c.operatingSystem, COUNT(c) FROM UrlClick c WHERE c.urlKey = :urlKey AND c.operatingSystem IS NOT NULL GROUP BY c.operatingSystem ORDER BY COUNT(c) DESC")
+    List<Object[]> getClickStatsByOperatingSystem(@Param("urlKey") String urlKey);
 } 

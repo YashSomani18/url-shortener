@@ -76,7 +76,6 @@ public class UrlService {
         return convertToUrlResponse(savedUrl);
     }
     
-    @Cacheable(value = "urls", key = "#shortCode")
     public UrlResponse getUrlByShortCode(String shortCode) {
         return Optional.ofNullable(urlRepository.findByShortCodeAndIsActiveTrue(shortCode))
                 .map(this::convertToUrlResponse)
@@ -157,7 +156,6 @@ public class UrlService {
         return sb.toString();
     }
     
-    @CacheEvict(value = "urls", key = "#url.shortCode")
     public void updateUrl(Url url) {
         urlRepository.save(url);
         cacheService.cacheUrl(url.getShortCode(), url);

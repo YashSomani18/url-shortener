@@ -15,7 +15,10 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -85,16 +88,18 @@ public class AnalyticsService {
             click.setCountry("Unknown");
             click.setCity("Unknown");
         }
+        
+        extractUtmParameters(click, referer);
 
         return click;
     }
 
-    @Cacheable(value = "clickCounts", key = "#urlKey")
+    @Cacheable(value = "clickCounts", key = "#urlKey", unless = "#result == null")
     public Long getClickCount(String urlKey) {
         return urlClickRepository.countByUrlKey(urlKey);
     }
 
-    @Cacheable(value = "recentClickCounts", key = "#urlKey + '_' + #since")
+    @Cacheable(value = "recentClickCounts", key = "#urlKey + '_' + #since", unless = "#result == null")
     public Long getClickCountSince(String urlKey, LocalDateTime since) {
         return urlClickRepository.countByUrlKeyAndClickedAtGreaterThanEqual(urlKey, since);
     }
@@ -107,32 +112,72 @@ public class AnalyticsService {
         return urlClickRepository.findByUrlKeyAndClickedAtBetweenOrderByClickedAtDesc(urlKey, startDate, endDate);
     }
 
-    @Cacheable(value = "analyticsStats", key = "#urlKey + '_country'")
+    @Cacheable(value = "analyticsStats", key = "#urlKey + '_country'", unless = "#result == null or #result.isEmpty()")
     public Map<String, Long> getClickStatsByCountry(String urlKey) {
         return urlClickRepository.getClickStatsByCountry(urlKey)
                 .stream()
                 .collect(java.util.stream.Collectors.toMap(
-                        row -> (String) row[0],
+                        row -> row[0] != null ? row[0].toString() : "Unknown",
                         row -> (Long) row[1]
                 ));
     }
 
-    @Cacheable(value = "analyticsStats", key = "#urlKey + '_browser'")
+    @Cacheable(value = "analyticsStats", key = "#urlKey + '_browser'", unless = "#result == null or #result.isEmpty()")
     public Map<String, Long> getClickStatsByBrowser(String urlKey) {
         return urlClickRepository.getClickStatsByBrowser(urlKey)
                 .stream()
                 .collect(java.util.stream.Collectors.toMap(
+                        row -> row[0] != null ? row[0].toString() : "Unknown",
+                        row -> (Long) row[1]
+                ));
+    }
+
+    @Cacheable(value = "analyticsStats", key = "#urlKey + '_device'", unless = "#result == null or #result.isEmpty()")
+    public Map<String, Long> getClickStatsByDeviceType(String urlKey) {
+        return urlClickRepository.getClickStatsByDeviceType(urlKey)
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        row -> row[0] != null ? row[0].toString() : "Unknown",
+                        row -> (Long) row[1]
+                ));
+    }
+
+    @Cacheable(value = "analyticsStats", key = "#urlKey + '_utm_source'", unless = "#result == null or #result.isEmpty()")
+    public Map<String, Long> getClickStatsByUtmSource(String urlKey) {
+        return urlClickRepository.getClickStatsByUtmSource(urlKey)
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(
                         row -> (String) row[0],
                         row -> (Long) row[1]
                 ));
     }
 
-    @Cacheable(value = "analyticsStats", key = "#urlKey + '_device'")
-    public Map<String, Long> getClickStatsByDeviceType(String urlKey) {
-        return urlClickRepository.getClickStatsByDeviceType(urlKey)
+    @Cacheable(value = "analyticsStats", key = "#urlKey + '_utm_medium'", unless = "#result == null or #result.isEmpty()")
+    public Map<String, Long> getClickStatsByUtmMedium(String urlKey) {
+        return urlClickRepository.getClickStatsByUtmMedium(urlKey)
                 .stream()
                 .collect(java.util.stream.Collectors.toMap(
                         row -> (String) row[0],
+                        row -> (Long) row[1]
+                ));
+    }
+
+    @Cacheable(value = "analyticsStats", key = "#urlKey + '_utm_campaign'", unless = "#result == null or #result.isEmpty()")
+    public Map<String, Long> getClickStatsByUtmCampaign(String urlKey) {
+        return urlClickRepository.getClickStatsByUtmCampaign(urlKey)
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        row -> row[0] != null ? row[0].toString() : "Unknown",
+                        row -> (Long) row[1]
+                ));
+    }
+
+    @Cacheable(value = "analyticsStats", key = "#urlKey + '_operating_system'", unless = "#result == null or #result.isEmpty()")
+    public Map<String, Long> getClickStatsByOperatingSystem(String urlKey) {
+        return urlClickRepository.getClickStatsByOperatingSystem(urlKey)
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        row -> row[0] != null ? row[0].toString() : "Unknown",
                         row -> (Long) row[1]
                 ));
     }
@@ -140,7 +185,7 @@ public class AnalyticsService {
     /**
      * Get comprehensive analytics for a URL
      */
-    @Cacheable(value = "urlAnalytics", key = "#urlKey")
+    @Cacheable(value = "urlAnalytics", key = "#urlKey", unless = "#result == null")
     public UrlAnalyticsDto getUrlAnalytics(String urlKey) {
         return UrlAnalyticsDto.builder()
                 .urlKey(urlKey)
@@ -151,6 +196,10 @@ public class AnalyticsService {
                 .countryStats(getClickStatsByCountry(urlKey))
                 .browserStats(getClickStatsByBrowser(urlKey))
                 .deviceStats(getClickStatsByDeviceType(urlKey))
+                .utmSourceStats(getClickStatsByUtmSource(urlKey))
+                .utmMediumStats(getClickStatsByUtmMedium(urlKey))
+                .utmCampaignStats(getClickStatsByUtmCampaign(urlKey))
+                .operatingSystemStats(getClickStatsByOperatingSystem(urlKey))
                 .build();
     }
 
@@ -167,5 +216,65 @@ public class AnalyticsService {
      */
     public List<ClickAnalyticsDto> getDailyClickStats(String urlKey, LocalDateTime startDate, LocalDateTime endDate) {
         return urlClickRepository.getDailyClickStats(urlKey, startDate, endDate);
+    }
+
+    /**
+     * Extract UTM parameters from referer URL and set them on the UrlClick entity
+     */
+    private void extractUtmParameters(UrlClick click, String referer) {
+        if (referer == null || referer.trim().isEmpty()) {
+            return;
+        }
+
+        try {
+            // Find the query string part of the URL
+            int queryIndex = referer.indexOf('?');
+            if (queryIndex == -1) {
+                return; // No query parameters
+            }
+
+            String queryString = referer.substring(queryIndex + 1);
+            Map<String, String> params = parseQueryString(queryString);
+
+            // Set UTM parameters if they exist
+            click.setUtmSource(params.get("utm_source"));
+            click.setUtmMedium(params.get("utm_medium"));
+            click.setUtmCampaign(params.get("utm_campaign"));
+            click.setUtmTerm(params.get("utm_term"));
+            click.setUtmContent(params.get("utm_content"));
+
+            log.debug("Extracted UTM parameters for referer: {} - source: {}, medium: {}, campaign: {}",
+                    referer, params.get("utm_source"), params.get("utm_medium"), params.get("utm_campaign"));
+
+        } catch (Exception e) {
+            log.warn("Failed to extract UTM parameters from referer: {}", referer, e);
+        }
+    }
+
+    /**
+     * Parse query string into a Map of parameter names and values
+     */
+    private Map<String, String> parseQueryString(String queryString) {
+        Map<String, String> params = new HashMap<>();
+        
+        if (queryString == null || queryString.trim().isEmpty()) {
+            return params;
+        }
+
+        try {
+            String[] pairs = queryString.split("&");
+            for (String pair : pairs) {
+                int idx = pair.indexOf("=");
+                if (idx > 0) {
+                    String key = URLDecoder.decode(pair.substring(0, idx), StandardCharsets.UTF_8);
+                    String value = URLDecoder.decode(pair.substring(idx + 1), StandardCharsets.UTF_8);
+                    params.put(key, value);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to parse query string: {}", queryString, e);
+        }
+
+        return params;
     }
 }
