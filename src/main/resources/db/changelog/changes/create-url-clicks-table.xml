@@ -13,13 +13,13 @@
             </not>
             <tableExists tableName="urls"/>
         </preConditions>
-        <comment>Create URL clicks table with UUID primary keys, auditing fields, foreign key to URLs, and proper snake_case naming for analytics</comment>
+        <comment>Create URL clicks table with UUID primary keys, auditing fields, foreign key to URLs, and proper snake_case naming for analytics (PostgreSQL)</comment>
 
         <sql>
             CREATE TABLE url_clicks (
             url_click_key VARCHAR(36) NOT NULL PRIMARY KEY,
             url_key VARCHAR(36) NOT NULL,
-            clicked_at DATETIME NOT NULL,
+            clicked_at TIMESTAMP NOT NULL,
             ip_address VARCHAR(45),
             user_agent VARCHAR(500),
             referer VARCHAR(500),
@@ -30,11 +30,12 @@
             created_on TIMESTAMP NOT NULL,
             modified_on TIMESTAMP,
             created_by VARCHAR(255),
-            modified_by VARCHAR(255),
-
-            CONSTRAINT fk_url_clicks_url_key
-            FOREIGN KEY (url_key) REFERENCES urls(url_key) ON DELETE CASCADE
+            modified_by VARCHAR(255)
             );
+
+            ALTER TABLE url_clicks
+            ADD CONSTRAINT fk_url_clicks_url_key
+            FOREIGN KEY (url_key) REFERENCES urls(url_key) ON DELETE CASCADE;
 
             CREATE INDEX idx_url_clicks_url_key ON url_clicks(url_key);
             CREATE INDEX idx_url_clicks_clicked_at ON url_clicks(clicked_at);
@@ -60,7 +61,6 @@
         <comment>Add core analytics fields: operating system, browser version, language, bot detection, session tracking, and unique visitor detection</comment>
 
         <sql>
-
             ALTER TABLE url_clicks
             ADD COLUMN operating_system VARCHAR(50),
             ADD COLUMN browser_version VARCHAR(20),
@@ -68,7 +68,6 @@
             ADD COLUMN session_id VARCHAR(36),
             ADD COLUMN is_unique_visitor BOOLEAN DEFAULT FALSE,
             ADD COLUMN is_bot BOOLEAN DEFAULT FALSE;
-
 
             CREATE INDEX idx_url_clicks_session_id ON url_clicks(session_id);
             CREATE INDEX idx_url_clicks_is_bot ON url_clicks(is_bot);
@@ -141,14 +140,12 @@
         <comment>Add UTM parameters for marketing campaign tracking and attribution analysis</comment>
 
         <sql>
-
             ALTER TABLE url_clicks
             ADD COLUMN utm_source VARCHAR(100),
             ADD COLUMN utm_medium VARCHAR(100),
             ADD COLUMN utm_campaign VARCHAR(100),
             ADD COLUMN utm_term VARCHAR(100),
             ADD COLUMN utm_content VARCHAR(100);
-
 
             CREATE INDEX idx_url_clicks_utm_source ON url_clicks(utm_source);
             CREATE INDEX idx_url_clicks_utm_medium ON url_clicks(utm_medium);
@@ -184,19 +181,15 @@
 
         <sql>
             ALTER TABLE url_clicks
-            ADD COLUMN response_time_ms INT,
+            ADD COLUMN response_time_ms INTEGER,
             ADD COLUMN is_suspicious BOOLEAN DEFAULT FALSE,
             ADD COLUMN click_source VARCHAR(20),
             ADD COLUMN previous_url VARCHAR(500),
             ADD COLUMN is_mobile BOOLEAN DEFAULT FALSE,
             ADD COLUMN screen_resolution VARCHAR(20),
-            ADD COLUMN connection_type VARCHAR(20);
-
-
-            ALTER TABLE url_clicks
+            ADD COLUMN connection_type VARCHAR(20),
             ADD COLUMN geo_enriched BOOLEAN DEFAULT FALSE,
             ADD COLUMN device_enriched BOOLEAN DEFAULT FALSE;
-
 
             CREATE INDEX idx_url_clicks_click_source ON url_clicks(click_source);
             CREATE INDEX idx_url_clicks_is_suspicious ON url_clicks(is_suspicious);

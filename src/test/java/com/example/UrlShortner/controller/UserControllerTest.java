@@ -76,9 +76,9 @@ class UserControllerTest {
     void register_InvalidRequest_ReturnsBadRequest() throws Exception {
         // Given
         UserRegistrationRequest request = UserRegistrationRequest.builder()
-                .username("")
+                .username("testuser")
                 .email("invalid-email")
-                .password("")
+                .password("password123")
                 .build();
 
         when(userService.createUser(any(UserRegistrationRequest.class)))

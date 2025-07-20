@@ -13,7 +13,7 @@
             </not>
             <tableExists tableName="users"/>
         </preConditions>
-        <comment>Create URLs table with UUID primary keys, auditing fields, foreign key to users, and proper snake_case naming</comment>
+        <comment>Create URLs table with UUID primary keys, auditing fields, foreign key to users, and proper snake_case naming for PostgreSQL</comment>
         
         <createTable tableName="urls">
             <column name="url_key" type="VARCHAR(36)">
@@ -25,7 +25,7 @@
             <column name="short_code" type="VARCHAR(10)">
                 <constraints nullable="false" unique="true"/>
             </column>
-            <column name="expires_at" type="DATETIME">
+            <column name="expires_at" type="TIMESTAMP">
                 <constraints nullable="true"/>
             </column>
             <column name="click_count" type="BIGINT" defaultValueNumeric="0">

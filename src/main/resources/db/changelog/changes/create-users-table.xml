@@ -12,7 +12,7 @@
                 <tableExists tableName="users"/>
             </not>
         </preConditions>
-        <comment>Create users table with UUID primary keys, auditing fields, and proper snake_case naming</comment>
+        <comment>Create users table with UUID primary keys, auditing fields, and proper snake_case naming for PostgreSQL</comment>
         
         <createTable tableName="users">
             <column name="user_key" type="VARCHAR(36)">

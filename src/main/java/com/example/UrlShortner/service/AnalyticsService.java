@@ -4,8 +4,6 @@ import com.example.UrlShortner.dto.ClickAnalyticsDto;
 import com.example.UrlShortner.dto.UrlAnalyticsDto;
 import com.example.UrlShortner.model.UrlClick;
 import com.example.UrlShortner.repository.UrlClickRepository;
-import com.example.UrlShortner.service.DeviceDetectionService;
-import com.example.UrlShortner.service.GeoLocationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
