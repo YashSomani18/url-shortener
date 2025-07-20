@@ -376,6 +376,5 @@ src/main/java/com/example/UrlShortner/
 5. Ensure all tests pass
 6. Submit a pull request
 
-## License
-
-This project is licensed under the MIT License. 
+## Creator
+This is created by Yash Somani
