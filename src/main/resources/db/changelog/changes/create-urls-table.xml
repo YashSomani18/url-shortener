@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="002" author="url-shortener">
+        
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="urls"/>
+            </not>
+            <tableExists tableName="users"/>
+        </preConditions>
+        <comment>Create URLs table with UUID primary keys, auditing fields, foreign key to users, and proper snake_case naming</comment>
+        
+        <createTable tableName="urls">
+            <column name="url_key" type="VARCHAR(36)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="original_url" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="short_code" type="VARCHAR(10)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="expires_at" type="DATETIME">
+                <constraints nullable="true"/>
+            </column>
+            <column name="click_count" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_key" type="VARCHAR(36)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="description" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_on" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="modified_on" type="TIMESTAMP">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_by" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="modified_by" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="urls" baseColumnNames="user_key"
+                                constraintName="fk_urls_user_key"
+                                referencedTableName="users" referencedColumnNames="user_key"
+                                onDelete="SET NULL"/>
+
+        <createIndex tableName="urls" indexName="idx_urls_short_code">
+            <column name="short_code"/>
+        </createIndex>
+
+        <createIndex tableName="urls" indexName="idx_urls_user_key">
+            <column name="user_key"/>
+        </createIndex>
+
+        <createIndex tableName="urls" indexName="idx_urls_is_active">
+            <column name="is_active"/>
+        </createIndex>
+
+        <createIndex tableName="urls" indexName="idx_urls_expires_at">
+            <column name="expires_at"/>
+        </createIndex>
+        
+        <rollback>
+            <dropTable tableName="urls"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog> 
